@@ -41,7 +41,7 @@ def export_all(grid, projection, datasets):
         'TMF_undisturbed_frac': tmf.eq(10),
         'TMF_degraded_frac': tmf.eq(20),
         'TMF_regrowth_frac': tmf.eq(30),
-        'TMF_deforested_frac': tmf.remap([41, 42, 43], [1, 1, 1]).neq(0),
+        'TMF_deforested_frac': tmf.remap([41, 42, 43], [1, 1, 1]).neq(0).unmask().clip(grid),
         'TMF_ongoing_dd_frac': tmf.eq(50)
     }
 
