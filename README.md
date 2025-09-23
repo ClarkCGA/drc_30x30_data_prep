@@ -10,12 +10,16 @@ drc_30x30_data_prep/
 ├── Dockerfile
 ├── authenticate.ipynb
 ├── requirements.txt
-├── run_analysis.py
 ├── README.md
 └── gee_grid_analysis/
     ├── __init__.py
     ├── datasets.py
     ├── utils.py
+└── scripts/
+    ├── gee_export.py
+    ├── merge_tables.py
+└── data/
+    ├── drc_1km_grid_reference_table.csv
 ```
 
 ## Requirements
