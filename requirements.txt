@@ -1,2 +1,3 @@
 earthengine-api==0.1.362
 jupyterlab==4.4.3
+pandas==2.3.3
