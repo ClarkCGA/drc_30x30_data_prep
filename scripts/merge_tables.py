@@ -57,6 +57,7 @@ for file_name in os.listdir(csvs_folder):
         print(f"Successfully joined {file_name} to the reference table")
 
 # Save output
-output_path = "output/drc_1km_planning_units.csv"
+os.makedirs("output", exist_ok=True)
+output_path = "output/drc_1km_data_planning_units.csv"
 df.to_csv(output_path, index=False)
 
