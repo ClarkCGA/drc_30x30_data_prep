@@ -39,7 +39,7 @@ def export_all(grid, projection, datasets):
         'mean_GCP_Jung': (datasets['gcp_jung'], 1000, 'DRC_1km_GCP_Jung'),
         'mean_GCP_Dinerstein': (datasets['gcp_dinerstein'], 300, 'DRC_1km_GCP_Dinerstein'),
         'mean_ESP': (datasets['esp'], 1000, 'DRC_1km_ESP'),
-        'mean_agb': (datasets['agb'], 100, 'DRC_1km_AGB_mean'),
+        'mean_esa_agb': (datasets['esa_agb'], 100, 'DRC_1km_ESA_AGB_mean'),
     }
 
     for name, (image, scl, export_name) in continuous.items():
@@ -155,11 +155,11 @@ def export_all(grid, projection, datasets):
     agb_nasa = biomass_carbon.select('agb')
     bgb_nasa = biomass_carbon.select('bgb')
     
-    result = get_image_stats(agb_nasa, grid, projection, 'mean_AGB', 1000)
-    export_table(result, 'DRC_1km_AGB_mean', 'GEE_Downloads', ['grid_id', 'mean_AGB'])
+    result = get_image_stats(agb_nasa, grid, projection, 'mean_ornl_agb', 1000)
+    export_table(result, 'DRC_1km_ORNL_AGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_agb'])
     
-    result = get_image_stats(bgb_nasa, grid, projection, 'mean_BGB', 1000)
-    export_table(result, 'DRC_1km_BGB_mean', 'GEE_Downloads', ['grid_id', 'mean_BGB'])
+    result = get_image_stats(bgb_nasa, grid, projection, 'mean_ornl_bgb', 1000)
+    export_table(result, 'DRC_1km_ORNL_BGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_bgb'])
 
 def main():
     grid, projection = load_grid_and_projection()
