@@ -155,10 +155,10 @@ def export_all(grid, projection, datasets):
     agb_nasa = biomass_carbon.select('agb')
     bgb_nasa = biomass_carbon.select('bgb')
     
-    result = get_image_stats(agb_nasa, grid, projection, 'mean_ornl_agb', 1000)
+    result = get_image_stats(agb_nasa, grid, projection, 'mean_ornl_agb', 300)
     export_table(result, 'DRC_1km_ORNL_AGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_agb'])
     
-    result = get_image_stats(bgb_nasa, grid, projection, 'mean_ornl_bgb', 1000)
+    result = get_image_stats(bgb_nasa, grid, projection, 'mean_ornl_bgb', 300)
     export_table(result, 'DRC_1km_ORNL_BGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_bgb'])
 
 def main():
