@@ -1,13 +1,27 @@
 import ee
-from gee_grid_analysis.datasets import load_grid_and_projection, load_datasets
-from gee_grid_analysis.utils import get_image_stats, export_table
+from gee_grid_analysis.datasets import load_grid_and_projection, load_gen_datasets, load_iucn_datasets
+from gee_grid_analysis.utils import get_image_stats, get_image_max, export_table
 
 ee.Initialize()
 
 def rasterize(fc):
     return ee.Image(0).byte().paint(fc, 1)
 
-def export_all(grid, projection, datasets):
+def species_richness(fc):
+    """Count overlapping species range polygons per pixel using reduceToImage.
+    Assigns a constant value of 1 to each feature then sums across all overlapping
+    features, yielding a per-pixel species richness count. Scales efficiently to
+    large FeatureCollections."""
+    return fc.map(lambda f: f.set('presence', 1)).reduceToImage(['presence'], ee.Reducer.sum())
+
+def rasterize_property(fc, property_name):
+    """
+    Burn a numeric property from a FeatureCollection into a float raster.
+    Use with get_image_stats() to compute per-grid-cell mean of that property.
+    """
+    return ee.Image(0).float().paint(fc, property_name)
+
+def export_gen(grid, projection, datasets):
     scale = 30
 
     # Protected areas and land designations
@@ -24,12 +38,12 @@ def export_all(grid, projection, datasets):
         'kba_frac': 'DRC_1km_KBA_Fractional',
         'cf_frac': 'DRC_1km_CF_Fractional',
         'gc_frac': 'DRC_1km_GreenCorridor_Fractional',
-        'oil_frac': 'DRC_1km_OilBlocks_Fractional'
+        'oil_frac': 'DRC_1km_OilBlocks_Fractional', 
     }
 
     for name, image in rasters.items():
         result = get_image_stats(image, grid, projection, name, scale)
-        export_table(result, export_names[name], 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_names[name], ['grid_id', name])
 
     # Continuous variables
     continuous = {
@@ -44,7 +58,7 @@ def export_all(grid, projection, datasets):
 
     for name, (image, scl, export_name) in continuous.items():
         result = get_image_stats(image, grid, projection, name, scl)
-        export_table(result, export_name, 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_name, ['grid_id', name])
 
     # Tropical Moist Forest classes
     tmf = datasets['tmf']
@@ -58,7 +72,7 @@ def export_all(grid, projection, datasets):
 
     for name, (img, export_name) in tmf_classes.items():
         result = get_image_stats(img, grid, projection, name, scale)
-        export_table(result, export_name, 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_name, ['grid_id', name])
 
     # FACET Land Cover classes
     facet = datasets['facet']
@@ -71,7 +85,7 @@ def export_all(grid, projection, datasets):
 
     for name, (img, export_name) in facet_classes.items():
         result = get_image_stats(img, grid, projection, name, 60)
-        export_table(result, export_name, 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_name, ['grid_id', name])
 
     # Degree of Urbanization classes
     dou = datasets['dou']
@@ -87,7 +101,7 @@ def export_all(grid, projection, datasets):
 
     for name, (img, export_name) in dou_classes.items():
         result = get_image_stats(img, grid, projection, name, 1000)
-        export_table(result, export_name, 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_name, ['grid_id', name])
 
     # Population (sum)
     pop = datasets['pop']
@@ -97,38 +111,38 @@ def export_all(grid, projection, datasets):
         scale=100,
         crs=projection
     ).map(lambda f: f.set('pop_sum', f.get('sum')))
-    export_table(pop_stats, 'DRC_1km_GHS_Population_sum', 'GEE_Downloads', ['grid_id', 'pop_sum'])
+    export_table(pop_stats, 'DRC_1km_GHS_Population_sum', ['grid_id', 'pop_sum'])
     
     # Peat Thickness
     result = get_image_stats(datasets['peat_thickness'], grid, projection, 'mean_PeatThickness', 50)
-    export_table(result, 'DRC_1km_PeatThickness', 'GEE_Downloads', ['grid_id', 'mean_PeatThickness'])
+    export_table(result, 'DRC_1km_PeatThickness', ['grid_id', 'mean_PeatThickness'])
 
     # Human Impact Index
     result = get_image_stats(datasets['human_impact_index'], grid, projection, 'mean_HumanImpactIndex', 300)
-    export_table(result, 'DRC_1km_HumanImpactIndex', 'GEE_Downloads', ['grid_id', 'mean_HumanImpactIndex'])
+    export_table(result, 'DRC_1km_HumanImpactIndex', ['grid_id', 'mean_HumanImpactIndex'])
 
     # Global Human Modification
     result = get_image_stats(datasets['global_human_modification'], grid, projection, 'mean_GlobalHumanModification', 1000)
-    export_table(result, 'DRC_1km_GlobalHumanModification', 'GEE_Downloads', ['grid_id', 'mean_GlobalHumanModification'])
+    export_table(result, 'DRC_1km_GlobalHumanModification', ['grid_id', 'mean_GlobalHumanModification'])
 
     # Anthropogenic Pressure (Current and Future)
     current_anthro = datasets['anthropogenic_pressure'].select('b1')
     future_anthro = datasets['anthropogenic_pressure'].select('b2')
     
     result = get_image_stats(current_anthro, grid, projection, 'mean_Anthropogenic_current_pressure', 1000)
-    export_table(result, 'DRC_1km_Current_Anthropogenic_Pressure', 'GEE_Downloads', ['grid_id', 'mean_Anthropogenic_current_pressure'])
+    export_table(result, 'DRC_1km_Current_Anthropogenic_Pressure', ['grid_id', 'mean_Anthropogenic_current_pressure'])
     
     result = get_image_stats(future_anthro, grid, projection, 'mean_Anthropogenic_future_pressure', 1000)
-    export_table(result, 'DRC_1km_Future_Anthropogenic_Pressure', 'GEE_Downloads', ['grid_id', 'mean_Anthropogenic_future_pressure'])
+    export_table(result, 'DRC_1km_Future_Anthropogenic_Pressure', ['grid_id', 'mean_Anthropogenic_future_pressure'])
 
     # Natural semi grassland probability
     nat_semi_grassland = datasets['nat_semi_grassland'].eq(22)
     result = get_image_stats(nat_semi_grassland, grid, projection, 'natural_semi_grassland_frac', 30)
-    export_table(result, 'DRC_1km_natural_semi_grassland_Fractional', 'GEE_Downloads', ['grid_id', 'natural_semi_grassland_frac'])
+    export_table(result, 'DRC_1km_natural_semi_grassland_Fractional', ['grid_id', 'natural_semi_grassland_frac'])
 
     # Peat Carbon
     result = get_image_stats(datasets['peat_carbon'], grid, projection, 'mean_PeatCarbon', 50)
-    export_table(result, 'DRC_1km_PeatCarbon', 'GEE_Downloads', ['grid_id', 'mean_PeatCarbon'])
+    export_table(result, 'DRC_1km_PeatCarbon', ['grid_id', 'mean_PeatCarbon'])
 
     # Forest Ecosystems (7 classes)
     forest_eco = datasets['forest_ecosystems']
@@ -144,11 +158,11 @@ def export_all(grid, projection, datasets):
 
     for name, (img, export_name) in forest_eco_classes.items():
         result = get_image_stats(img, grid, projection, name, 30)
-        export_table(result, export_name, 'GEE_Downloads', ['grid_id', name])
+        export_table(result, export_name, ['grid_id', name])
 
     # Marine Pressure
     result = get_image_stats(datasets['marine_pressure'], grid, projection, 'mean_MarinePressure', 50)
-    export_table(result, 'DRC_1km_MarinePressure', 'GEE_Downloads', ['grid_id', 'mean_MarinePressure'])
+    export_table(result, 'DRC_1km_MarinePressure', ['grid_id', 'mean_MarinePressure'])
 
     # Biomass Carbon (NASA ORNL - AGB and BGB)
     biomass_carbon = datasets['biomass_carbon']
@@ -156,15 +170,85 @@ def export_all(grid, projection, datasets):
     bgb_nasa = biomass_carbon.select('bgb')
     
     result = get_image_stats(agb_nasa, grid, projection, 'mean_ornl_agb', 300)
-    export_table(result, 'DRC_1km_ORNL_AGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_agb'])
+    export_table(result, 'DRC_1km_ORNL_AGB_mean', ['grid_id', 'mean_ornl_agb'])
     
     result = get_image_stats(bgb_nasa, grid, projection, 'mean_ornl_bgb', 300)
-    export_table(result, 'DRC_1km_ORNL_BGB_mean', 'GEE_Downloads', ['grid_id', 'mean_ornl_bgb'])
+    export_table(result, 'DRC_1km_ORNL_BGB_mean', ['grid_id', 'mean_ornl_bgb'])
+
+    # Soil Erosion
+    erosion = rasterize_property(datasets['basin'], "ero_kh_sav")
+    result = get_image_stats(erosion, grid, projection, 'mean_erosion', 1000)
+    export_table(result, 'DRC_1km_Erosion_mean', ['grid_id', 'mean_erosion'])
+    
+    # Natural Discharge
+    discharge = rasterize_property(datasets['basin'], "dis_m3_pyr")
+    result = get_image_stats(discharge, grid, projection, 'mean_discharge', 1000)
+    export_table(result, 'DRC_1km_Discharge_mean', ['grid_id', 'mean_discharge'])
+    
+    # Surface Runoff
+    runoff = rasterize_property(datasets['basin'], "run_mm_syr")
+    result = get_image_stats(runoff, grid, projection, 'mean_runoff_depth', 1000)
+    export_table(result, 'DRC_1km_Surface_Runoff_Depth_mean', ['grid_id', 'mean_runoff_depth'])
+
+    # Recharge
+    recharge = datasets['recharge'].select('b1')
+    result = get_image_stats(recharge, grid, projection, 'mean_recharge', 1000)
+    export_table(result, 'DRC_1km_Recharge_mean', ['grid_id', 'mean_recharge'])
+
+    # Lake and Wetland Presence
+    lake_wetland = datasets['lake_wetland'].select('b1').gt(0)
+    result = get_image_stats(lake_wetland, grid, projection, 'lake_wetland_frac', 464)
+    export_table(result, 'DRC_1km_LakeWetland_Fractional', ['grid_id', 'lake_wetland_frac'])
+
+    # River Network — density and max stream order
+    river_density = rasterize(datasets['river_network'])
+    result = get_image_stats(river_density, grid, projection, 'river_density_frac', 30)
+    export_table(result, 'DRC_1km_RiverDensity_Fractional', ['grid_id', 'river_density_frac'])
+
+    river_order = rasterize_property(datasets['river_network'], 'RIV_ORD')
+    result = get_image_max(river_order, grid, projection, 'max_river_order', 30)
+    export_table(result, 'DRC_1km_MaxRiverOrder', ['grid_id', 'max_river_order'])
+
+    # Bird Species Richness (BirdLife — 1286 species range polygons)
+    birds_richness = species_richness(datasets['birds'])
+    result = get_image_max(birds_richness, grid, projection, 'bird_species_richness', 30)
+    export_table(result, 'DRC_1km_BirdSpecies_Richness', ['grid_id', 'bird_species_richness'])
+
+def export_iucn(grid, projection, datasets):
+    # IUCN Threatened Species — species richness (count of overlapping range polygons per pixel)
+    iucn_groups = {
+        'amphibians': datasets['amphibians'],
+        'freshwater_crabs': datasets['fw_crabs'],
+        'freshwater_crayfish': datasets['fw_crayfish'],
+        'freshwater_fish': datasets['fw_fish'],
+        'freshwater_molluscs': datasets['fw_molluscs'],
+        'freshwater_odonata': datasets['fw_odonata'],
+        'freshwater_other': datasets['fw_other'],
+        'freshwater_plants': datasets['fw_plants'],
+        'freshwater_shrimps': datasets['fw_shrimps'],
+        'reptiles': datasets['reptiles']
+    }
+
+    richness_images = []
+    for group_name, fc in iucn_groups.items():
+        raster = species_richness(fc)
+        richness_images.append(raster)
+        result = get_image_max(raster, grid, projection, f'{group_name}_richness', 30)
+        export_table(result, f'DRC_1km_IUCN_{group_name}_Richness', ['grid_id', f'{group_name}_richness'])
+
+    # Combined species richness across all groups
+    combined = ee.ImageCollection(richness_images).sum()
+    result = get_image_max(combined, grid, projection, 'total_species_richness', 30)
+    export_table(result, 'DRC_1km_IUCN_Total_Species_Richness', ['grid_id', 'total_species_richness'])
+
+
 
 def main():
     grid, projection = load_grid_and_projection()
-    datasets = load_datasets(grid)
-    export_all(grid, projection, datasets)
+    gen_datasets = load_gen_datasets(grid)
+    iucn_datasets = load_iucn_datasets(grid)
+    export_gen(grid, projection, gen_datasets)
+    export_iucn(grid, projection, iucn_datasets)
 
 if __name__ == "__main__":
     main()
