@@ -69,7 +69,7 @@ Open terminal in Jupyter Lab, and run the following to export all the data from 
 python scripts/gee_export.py
 ```
 
-All exports are sent to your Google Drive, in a folder named `GEE_Downloads`. You can monitor progress in the [Earth Engine Tasks tab](https://code.earthengine.google.com/tasks).
+All exports are sent to your Google Drive, in a folder named `DRC_30x30`. You can monitor progress in the [Earth Engine Tasks tab](https://code.earthengine.google.com/tasks).
 
 ### 6. Add Neighborhood Information
 
