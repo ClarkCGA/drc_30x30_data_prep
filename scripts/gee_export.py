@@ -210,9 +210,16 @@ def export_gen(grid, projection, datasets):
     export_table(result, 'DRC_1km_MaxRiverOrder', ['grid_id', 'max_river_order'])
 
     # Bird Species Richness (BirdLife — 1286 species range polygons)
-    birds_richness = species_richness(datasets['birds'])
-    result = get_image_max(birds_richness, grid, projection, 'bird_species_richness', 30)
-    export_table(result, 'DRC_1km_BirdSpecies_Richness', ['grid_id', 'bird_species_richness'])
+    # Split into batches of 300 to avoid computation timeout, sum in merge_tables.py
+    birds = datasets['birds'].map(lambda f: f.simplify(1000))
+    n_batches = 5
+    batch_size = 300
+    for i in range(n_batches):
+        batch = birds.toList(batch_size, i * batch_size)
+        batch_fc = ee.FeatureCollection(batch)
+        batch_richness = species_richness(batch_fc)
+        result = get_image_max(batch_richness, grid, projection, f'bird_richness_batch{i}', 1000)
+        export_table(result, f'DRC_1km_BirdSpecies_Richness_batch{i}', [f'bird_richness_batch{i}', 'grid_id'])
 
 def export_iucn(grid, projection, datasets):
     # IUCN Threatened Species — species richness (count of overlapping range polygons per pixel)
@@ -246,9 +253,9 @@ def export_iucn(grid, projection, datasets):
 def main():
     grid, projection = load_grid_and_projection()
     gen_datasets = load_gen_datasets(grid)
-    iucn_datasets = load_iucn_datasets(grid)
+    # iucn_datasets = load_iucn_datasets(grid)
     export_gen(grid, projection, gen_datasets)
-    export_iucn(grid, projection, iucn_datasets)
+    # export_iucn(grid, projection, iucn_datasets)
 
 if __name__ == "__main__":
     main()

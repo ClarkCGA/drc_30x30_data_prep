@@ -58,6 +58,14 @@ for file_name in os.listdir(csvs_folder):
 
 # Save output
 os.makedirs("output", exist_ok=True)
+
+# Sum bird richness batches into a single column
+batch_cols = [f'bird_richness_batch{i}' for i in range(5)]
+existing_batches = [c for c in batch_cols if c in df.columns]
+if existing_batches:
+    df['bird_species_richness'] = df[existing_batches].sum(axis=1)
+    df.drop(columns=existing_batches, inplace=True)
+    print(f"Combined {len(existing_batches)} bird richness batches into 'bird_species_richness'")
 output_path = "output/drc_1km_data_planning_units.csv"
 df.to_csv(output_path, index=False)
 
