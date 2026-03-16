@@ -13,7 +13,7 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 
 WORKDIR /app
 
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:${PYTHONPATH}
 
 EXPOSE 8888
 

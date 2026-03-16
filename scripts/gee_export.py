@@ -30,7 +30,7 @@ def export_gen(grid, projection, datasets):
         'kba_frac': rasterize(datasets['kba']),
         'cf_frac': rasterize(datasets['cf']),
         'gc_frac': rasterize(datasets['gc']),
-        'oil_frac': rasterize(datasets['oil'])
+        'oil_frac': rasterize(datasets['oil']),
     }
 
     export_names = {

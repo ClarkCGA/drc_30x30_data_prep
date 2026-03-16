@@ -42,7 +42,7 @@ def load_gen_datasets(grid):
     }
 
 
-def load_iucn_datasets(grid):
+def load_iucn_datasets():
     base = "projects/earth-engine-071095/assets/Clark_Labs/WCS_Congo/IUCN_Threatened_Species/"
 
     def fc(name):
