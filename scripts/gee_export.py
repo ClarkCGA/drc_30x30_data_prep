@@ -1,5 +1,10 @@
 import ee
-from gee_grid_analysis.datasets import load_grid_and_projection, load_gen_datasets, load_iucn_datasets
+from gee_grid_analysis.datasets import (
+    load_grid_and_projection,
+    load_gen_datasets,
+    load_iucn_datasets,
+    load_flagship_species_datasets,
+)
 from gee_grid_analysis.utils import get_image_stats, get_image_max, export_table
 
 ee.Initialize()
@@ -214,9 +219,12 @@ def export_gen(grid, projection, datasets):
     result = get_image_max(birds_richness, grid, projection, 'bird_species_richness', 30)
     export_table(result, 'DRC_1km_BirdSpecies_Richness', ['grid_id', 'bird_species_richness'])
 
-def export_iucn(grid, projection, datasets):
-    # IUCN Threatened Species — species richness (count of overlapping range polygons per pixel)
-    iucn_groups = {
+def export_iucn(grid, projection, datasets, groups=None):
+    """
+    IUCN Threatened Species — species richness (count of overlapping range polygons per pixel).
+    groups: optional iterable restricting which taxon groups to export (default: all).
+    """
+    all_iucn_groups = {
         'amphibians': datasets['amphibians'],
         'freshwater_crabs': datasets['fw_crabs'],
         'freshwater_crayfish': datasets['fw_crayfish'],
@@ -226,8 +234,13 @@ def export_iucn(grid, projection, datasets):
         'freshwater_other': datasets['fw_other'],
         'freshwater_plants': datasets['fw_plants'],
         'freshwater_shrimps': datasets['fw_shrimps'],
-        'reptiles': datasets['reptiles']
+        'reptiles': datasets['reptiles'],
+        'mammals': datasets['mammals'],
     }
+    iucn_groups = (
+        all_iucn_groups if groups is None
+        else {k: v for k, v in all_iucn_groups.items() if k in groups}
+    )
 
     richness_images = []
     for group_name, fc in iucn_groups.items():
@@ -236,19 +249,54 @@ def export_iucn(grid, projection, datasets):
         result = get_image_max(raster, grid, projection, f'{group_name}_richness', 30)
         export_table(result, f'DRC_1km_IUCN_{group_name}_Richness', ['grid_id', f'{group_name}_richness'])
 
-    # Combined species richness across all groups
-    combined = ee.ImageCollection(richness_images).sum()
-    result = get_image_max(combined, grid, projection, 'total_species_richness', 30)
-    export_table(result, 'DRC_1km_IUCN_Total_Species_Richness', ['grid_id', 'total_species_richness'])
+    # Combined species richness across all groups — only valid when exporting the full set
+    if groups is None:
+        combined = ee.ImageCollection(richness_images).sum()
+        result = get_image_max(combined, grid, projection, 'total_species_richness', 30)
+        export_table(result, 'DRC_1km_IUCN_Total_Species_Richness', ['grid_id', 'total_species_richness'])
+
+
+def export_flagship_species(grid, projection, flagship_species):
+    """Export fractional range coverage per grid cell for each flagship species."""
+    scale = 30
+    export_names = {
+        'bonobo': 'DRC_1km_Bonobo_Fractional',
+        'okapi': 'DRC_1km_Okapi_Fractional',
+        'forest_elephant': 'DRC_1km_ForestElephant_Fractional',
+    }
+    for name, fc in flagship_species.items():
+        col_name = f'{name}_frac'
+        result = get_image_stats(rasterize(fc), grid, projection, col_name, scale)
+        export_table(result, export_names[name], ['grid_id', col_name])
 
 
 
-def main():
+def main(only='all'):
     grid, projection = load_grid_and_projection()
-    gen_datasets = load_gen_datasets(grid)
     iucn_datasets = load_iucn_datasets(grid)
-    export_gen(grid, projection, gen_datasets)
-    export_iucn(grid, projection, iucn_datasets)
+    flagship_species = load_flagship_species_datasets(iucn_datasets['mammals'])
+
+    if only == 'all':
+        gen_datasets = load_gen_datasets(grid)
+        export_gen(grid, projection, gen_datasets)
+        export_iucn(grid, projection, iucn_datasets)
+        export_flagship_species(grid, projection, flagship_species)
+    elif only == 'mammals':
+        export_iucn(grid, projection, iucn_datasets, groups=['mammals'])
+        export_flagship_species(grid, projection, flagship_species)
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="Export DRC 30x30 grid-level statistics from GEE.")
+    parser.add_argument(
+        "--only",
+        choices=["all", "mammals"],
+        default="all",
+        help=(
+            "Restrict which export groups run. 'mammals' exports only "
+            "mammals_richness and the flagship species fraction layers, "
+            "skipping the already-completed exports covered by 'all'."
+        ),
+    )
+    args = parser.parse_args()
+    main(only=args.only)

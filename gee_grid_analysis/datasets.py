@@ -42,11 +42,15 @@ def load_gen_datasets(grid):
     }
 
 
-def load_iucn_datasets():
+def load_iucn_datasets(grid):
     base = "projects/earth-engine-071095/assets/Clark_Labs/WCS_Congo/IUCN_Threatened_Species/"
+    mammals_base = "projects/hamed-gee/assets/WCS_Congo/IUCN_Threatened_Species/"
 
     def fc(name):
         return ee.FeatureCollection(base + name)
+
+    def mammals_fc(name):
+        return ee.FeatureCollection(mammals_base + name)
 
     amphibians = fc("Congo_AMPHIBIANS_PART1").merge(fc("Congo_AMPHIBIANS_PART2"))
     fw_fish = fc("Congo_FW_FISH_PART1").merge(fc("Congo_FW_FISH_PART2")).merge(fc("Congo_FW_FISH_PART3"))
@@ -54,6 +58,7 @@ def load_iucn_datasets():
                 .merge(fc("Congo_FW_OTHER_PART3")).merge(fc("Congo_FW_OTHER_PART4")))
     fw_plants = fc("Congo_FW_PLANTS_PART1").merge(fc("Congo_FW_PLANTS_PART2"))
     reptiles = fc("Congo_REPTILES_PART1").merge(fc("Congo_REPTILES_PART2"))
+    mammals = mammals_fc("iucn_mammals_1").merge(mammals_fc("iucn_mammals_2"))
 
     return {
         'amphibians': amphibians,
@@ -66,4 +71,17 @@ def load_iucn_datasets():
         'fw_plants': fw_plants,
         'fw_shrimps': fc("Congo_FW_SHRIMPS"),
         'reptiles': reptiles,
+        'mammals': mammals,
+    }
+
+
+def load_flagship_species_datasets(mammals_fc):
+    """
+    Filter the merged IUCN mammal assemblage down to individual flagship
+    species range polygons, keyed by species field 'sci_name'.
+    """
+    return {
+        'bonobo': mammals_fc.filter(ee.Filter.eq('sci_name', 'Pan paniscus')),
+        'okapi': mammals_fc.filter(ee.Filter.eq('sci_name', 'Okapia johnstoni')),
+        'forest_elephant': mammals_fc.filter(ee.Filter.eq('sci_name', 'Loxodonta cyclotis')),
     }
