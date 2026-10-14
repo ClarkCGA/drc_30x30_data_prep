@@ -28,4 +28,3 @@ config/star_config.yaml
 *.zip
 *.npy
 *.parquet
-.gitattributes

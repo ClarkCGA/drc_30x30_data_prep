@@ -124,9 +124,9 @@ The pipeline needs the raw IUCN and BirdLife data. **These datasets are not dist
 
 | Dataset | Where to get it | Config key |
 |---|---|---|
-| IUCN Red List spatial data: global group shapefiles (AMPHIBIANS, MAMMALS, REPTILES, FW_* incl. freshwater birds in FW_OTHER, PLANTS, marine groups; ~49 GB) | [IUCN Red List spatial data download](https://www.iucnredlist.org/resources/spatial-data-download) | `iucn_dir` |
+| IUCN Red List spatial data: global group shapefiles (AMPHIBIANS, MAMMALS, REPTILES, FW_*, PLANTS, marine groups; ~49 GB) | [IUCN Red List spatial data download](https://www.iucnredlist.org/resources/spatial-data-download) | `iucn_dir` |
 | HBW-BirdLife Checklist v10 (`.xlsx`, Red List categories of birds) | [BirdLife taxonomy](https://datazone.birdlife.org/about-our-science/taxonomy) | `birdlife_checklist` |
-| BirdLife Area of Habitat rasters (`area-habitat.zip`, unzipped; `FRC_<id>_<season>.tif`) | BirdLife International (on request) | `aoh_dir` |
+| BirdLife Area of Habitat rasters (`area-habitat.zip`, unzipped; `FRC_<id>_<season>.tif`); used for all birds | BirdLife International (on request) | `aoh_dir` |
 | DRC national boundary: geoBoundaries gbOpen COD ADM0 | [geoBoundaries](https://www.geoboundaries.org/) | `drc_boundary` |
 | Lake polygons (HydroLAKES / LakeATLAS v1.0), to add the DRC's share of border lakes back to the land boundary | [HydroATLAS](https://www.hydrosheds.org/hydroatlas) | `drc_boundary_add_water` |
 
@@ -152,8 +152,8 @@ cp config/star_config.example.yaml config/star_config.yaml
 ### 3. Run
 
 ```bash
-pixi run star-iucn       # all IUCN groups (incl. freshwater birds)
-pixi run star-birdlife   # other birds: BirdLife Area of Habitat
+pixi run star-iucn       # all IUCN groups except birds
+pixi run star-birdlife   # all birds: BirdLife Area of Habitat
 pixi run star-combine    # apply weights and write the outputs
 # or everything at once:
 pixi run star-all

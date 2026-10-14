@@ -42,7 +42,7 @@ class Config:
     iucn_exclude_dirs: list = field(default_factory=list)
     filters: dict = field(default_factory=lambda: dict(DEFAULT_FILTERS))
     weights: dict = field(default_factory=lambda: dict(DEFAULT_WEIGHTS))
-    bird_mode: str = "iucn_first"
+    bird_mode: str = "aoh_all"
     workers: int = 8
     wide_row_group: int = 50000
     limit: int = 0  # test mode: process at most this many species per stage (0 = all)
@@ -82,7 +82,7 @@ def load_config(path):
         iucn_exclude_dirs=list(raw.get("iucn_exclude_dirs") or []),
         filters=filters,
         weights=weights,
-        bird_mode=birds.get("mode", "iucn_first"),
+        bird_mode=birds.get("mode", "aoh_all"),
         workers=int(proc.get("workers", 8)),
         wide_row_group=int(proc.get("wide_row_group", 50000)),
     )

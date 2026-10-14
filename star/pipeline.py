@@ -102,6 +102,20 @@ def run_birds(cfg, grid):
         rec = r.to_dict()
         rec.update(id_no=id_no, source="BirdLife AOH", kingdom="ANIMALIA", **{"class": "AVES"})
         rows.append(rec)
+
+    if cfg.bird_mode == "aoh_all" and cfg.iucn_dir is not None and cfg.iucn_dir.exists():
+        # Birds with an IUCN range reaching the DRC but no BirdLife AOH raster at all:
+        # listed for transparency, not scored (birds are scored from AOH only).
+        feats = ranges.scan_iucn(cfg, grid)
+        av = feats[(feats["class"].str.upper() == "AVES") & feats["in_bbox"]
+                   & ranges.apply_filters(feats, cfg.filters)]
+        has_aoh = set(aoh.list_aoh(cfg.aoh_dir)["id_no"])
+        missing = sorted(set(av["id_no"].astype(int)) - has_aoh - set(aoh_sum.index))
+        for id_no in missing:
+            rows.append({"id_no": id_no, "source": "BirdLife AOH", "kingdom": "ANIMALIA", "class": "AVES",
+                         "range_source": "birdlife_aoh", "status": "excluded_no_aoh"})
+        log.info("Birds: %d birds with an IUCN range near the DRC have no BirdLife AOH raster: %s",
+                 len(missing), missing)
     sp = pd.DataFrame(rows).set_index("id_no")
     sp = sp.join(checklist, how="left")
 

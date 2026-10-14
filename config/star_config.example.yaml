@@ -27,7 +27,7 @@ paths:
   # (AMPHIBIANS/, MAMMALS/, FW_FISH/, FW_OTHER/, PLANTS/, ...). Every *.shp
   # below it is scanned, except folders listed in iucn_exclude_dirs.
   # FW_OTHER also holds the global ranges of ~2,300 freshwater-associated
-  # birds; those birds are scored from these IUCN ranges.
+  # birds; with birds.mode aoh_all they are skipped (birds come from AOH).
   iucn_dir: ~/data/iucn_red_list_threatened_species
 
   # HBW-BirdLife checklist. Supplies names and the Red List category of
@@ -79,10 +79,10 @@ weights:
   LC: 1
 
 birds:
-  # iucn_first: birds with an IUCN range map in the group files (FW_OTHER)
-  #             use it; all other DRC birds use BirdLife Area of Habitat.
-  # aoh_all:    every bird uses BirdLife AOH.
-  mode: iucn_first
+  # aoh_all (project choice): every bird is scored from BirdLife Area of
+  #             Habitat; IUCN bird ranges (FW_OTHER) are not used.
+  # iucn_first: birds with an IUCN range map use it; other birds use AOH.
+  mode: aoh_all
 
 processing:
   workers: 8

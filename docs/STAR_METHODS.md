@@ -115,9 +115,32 @@ Nonbreeding files).
 
 | Group | Source | Global denominator |
 |---|---|---|
-| Amphibians, mammals, reptiles, freshwater groups, plants, marine groups | IUCN Red List spatial data (2025-2) global group shapefiles | dissolved global range |
-| Freshwater-associated birds (~2,300 species world-wide, ranges in `FW_OTHER`). This includes all 538 birds of the IUCN DRC download | same IUCN shapefiles (ranges supplied to IUCN by BirdLife) | dissolved global range |
-| All other birds with habitat in the DRC | BirdLife Area of Habitat v2023.1 (1 km, Behrmann equal-area, habitat fraction 0–1) | global AOH = Σ pixel fraction × pixel area |
+| Amphibians, mammals, reptiles, fishes, freshwater invertebrates, plants, marine groups | IUCN Red List spatial data (2025-2) global group shapefiles | dissolved global range |
+| **All birds** | BirdLife Area of Habitat (AOH) v2023.1 (1 km, Behrmann equal-area, habitat fraction 0–1) | global AOH = Σ pixel fraction × pixel area |
+
+### Birds: BirdLife AOH throughout (project decision)
+
+Every bird is scored from BirdLife AOH (`birds.mode: aoh_all`). The IUCN
+group files also hold range maps for ~2,300 freshwater-associated birds
+(`FW_OTHER`, including the 538 birds of the IUCN DRC download). Those
+bird polygons are **not used**, so no bird is counted twice. Rationale:
+
+* **Consistency.** All birds are measured the same way. Mixing range-based
+  shares for some birds with habitat-based shares for others would make
+  values incomparable across species.
+* **Finer, habitat-based measure.** AOH keeps only the parts of a range with
+  suitable habitat and elevation. Range maps include large unsuitable areas,
+  so AOH places each species' share where the species actually lives.
+  This is the measure the published STAR metric uses.
+* **Complete coverage.** BirdLife AOH covers every DRC bird. IUCN range maps
+  in the group files cover only freshwater-associated birds.
+
+Birds whose IUCN range reaches the DRC but that have **no AOH raster** are
+listed in `star_species.csv` with status `excluded_no_aoh` and are not
+scored. In this run there are 4, all Least Concern: *Ploceus katangae*
+(22718899), *Bubo africanus* (216709698), *Bradypterus baboecala*
+(219592393) and *Bradypterus centralis* (219592883). Three have recent IUCN
+IDs, which suggests taxonomic changes after AOH v2023.1 was produced.
 
 For AOH birds, the per-cell AOH is the mean habitat fraction over the cell
 (GDAL area-weighted "average" warp onto the planning-unit grid, with nodata
@@ -125,9 +148,10 @@ set to 0 first) × the cell's area inside the DRC.
 
 Bird Red List categories come from the HBW-BirdLife Checklist v10 (column
 "2025 IUCN Red List category", joined on `SISRecID` = IUCN `id_no`). A CSV
-(`id_no,category`) given as `bird_category_override` takes precedence.
-
-`birds.mode: aoh_all` switches every bird to AOH.
+(`id_no,category`) given as `bird_category_override` takes precedence. Birds
+that IUCN does not recognise as species (`NR`) have no weight and are not
+scored. The alternative `birds.mode: iucn_first` (IUCN ranges for birds that
+have them) is kept in the code but not used.
 
 ## Outputs (`output/star/`)
 
@@ -140,7 +164,8 @@ Bird Red List categories come from the HBW-BirdLife Checklist v10 (column
 `status` values: `ok`, `excluded_category`, `excluded_marine_only`,
 `excluded_no_weight`, `excluded_filters_no_drc_range` (no filtered polygon
 reaches the DRC), `no_drc_overlap` (touches the DRC bounding box only),
-`excluded_drc_sliver`, `excluded_nationally_extinct`, `error: …`.
+`excluded_drc_sliver`, `excluded_nationally_extinct`, `excluded_no_aoh`,
+`error: …`.
 
 ## Differences from the earlier `IUCN_STAR_values.xlsx`
 
