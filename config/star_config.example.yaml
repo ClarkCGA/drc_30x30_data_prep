@@ -20,6 +20,8 @@ paths:
   # Land-only boundaries leave out the DRC's share of border lakes
   # (Tanganyika, Albert, Edward, Kivu, Mweru). Lake polygons listed here are
   # added back wherever they fall inside grid cells (HydroLAKES/LakeATLAS).
+  # The full LakeATLAS_v10_pol_east.shp works as is (read with the grid's
+  # bounding box); a pre-clipped subset just loads faster.
   drc_boundary_add_water:
     - ~/data/boundaries/LakeATLAS_v10_pol_drc_bbox.gpkg
 
