@@ -4,8 +4,8 @@ This repository prepares the per-planning-unit (1 km grid cell) data layers for 
 
 | Workflow | What it does | Runs on | Output |
 |---|---|---|---|
-| **A. GEE export** (`gee_grid_analysis/`, `scripts/gee/`) | Grid-level summary statistics of environmental, land-cover and species layers using the Google Earth Engine (GEE) Python API | Google Earth Engine (Docker) | `output/drc_1km_data_planning_units.csv` |
-| **B. STAR biodiversity layer** (`star/`) | Per-species, per-cell STAR (Species Threat Abatement and Restoration) values from IUCN Red List range maps and BirdLife data | Local machine (pixi environment) | `output/star/*.parquet`, `output/star/star_species.csv` |
+| **A. GEE export** (`gee_grid_analysis/`, `scripts/gee/`) | Grid-level summary statistics of environmental, land-cover and species layers using the Google Earth Engine (GEE) Python API | Google Earth Engine (pixi `gee` environment) | `output/drc_1km_data_planning_units.csv` |
+| **B. STAR biodiversity layer** (`star/`) | Per-species, per-cell STAR (Species Threat Abatement and Restoration) values from IUCN Red List range maps and BirdLife data | Local machine (pixi `default` environment) | `output/star/*.parquet`, `output/star/star_species.csv` |
 
 The output of this repository can be used within the 30 x 30 optimization toolbox available [here](https://github.com/ClarkCGA/drc_30x30_opt).
 
@@ -13,10 +13,8 @@ The output of this repository can be used within the 30 x 30 optimization toolbo
 
 ```
 drc_30x30_data_prep/
-├── Dockerfile                  # A: GEE environment
-├── requirements.txt            # A: GEE Python packages
 ├── authenticate.ipynb          # A: GEE authentication
-├── pixi.toml / pixi.lock       # B: local geospatial environment (GDAL, geopandas, rasterio, ...)
+├── pixi.toml / pixi.lock       # A + B: environments (gee, default)
 ├── gee_grid_analysis/          # A: dataset definitions and GEE helpers
 │   ├── datasets.py
 │   └── utils.py
@@ -44,60 +42,63 @@ drc_30x30_data_prep/
 
 ---
 
-## A. GEE export
+## Environment (both workflows)
 
-### Requirements
+Both workflows run in [pixi](https://pixi.sh) environments defined in `pixi.toml` and pinned in `pixi.lock`. pixi installs everything from conda-forge, including GDAL, and works natively on Linux, macOS and Windows, so neither Docker nor WSL is needed.
 
-The GEE workflow is wrapped in a Docker environment for reproducibility. Install [Docker](https://www.docker.com/products/docker-desktop/) and follow the steps below.
-
-If you are running this on Windows, it's recommended to run it inside Windows Subsystem for Linux (WSL). Follow the instructions [here](https://learn.microsoft.com/en-us/windows/wsl/install) to enable WSL in your Windows.
-
-### 1. Clone the Repository
+| Environment | Used for | Contents |
+|---|---|---|
+| `default` | B. STAR pipeline | Python 3.12, GDAL, geopandas, pyogrio, rasterio, exactextract, pyarrow, ... |
+| `gee` | A. GEE export | everything in `default` + earthengine-api 1.x and JupyterLab |
 
 ```bash
+# 1. install pixi (once): https://pixi.sh/latest/#installation
+#    macOS/Linux:  curl -fsSL https://pixi.sh/install.sh | sh
+#    Windows:      powershell -ExecutionPolicy ByPass -c "irm -useb https://pixi.sh/install.ps1 | iex"
+
+# 2. clone the repository
 git clone git@github.com:ClarkCGA/drc_30x30_data_prep.git
 cd drc_30x30_data_prep
-git lfs pull   # fetches data/drc_1km_grid_reference_table.csv
+git lfs pull   # fetches data/drc_1km_grid_reference_table.csv (needs Git LFS)
+
+# 3. create the environments
+pixi install            # default (STAR)
+pixi install -e gee     # GEE
 ```
 
-### 2. Build the Docker Image
+---
+
+## A. GEE export
+
+### 1. Authenticate with GEE (once per machine)
+
+Start Jupyter Lab in the `gee` environment:
 
 ```bash
-docker build -t drc-30x30-data-prep .
+pixi run -e gee gee-lab
 ```
 
-### 3. Run the Docker container
+Open `authenticate.ipynb` and run the cells. `ee.Authenticate()` opens Google's web sign-in; **select the Google Cloud project to use with Earth Engine on that page.** The credentials and that project are saved to `~/.config/earthengine/credentials` and reused by the export script, so no project ID is configured in this repository. The last (optional) cell checks that `ee.Initialize()` works.
+
+If the export later fails with `ee.Initialize: no project found`, the saved credentials did not come from this web sign-in (e.g. they were created with `earthengine authenticate` in a terminal). Re-run the notebook with `ee.Authenticate(force=True)` and pick the project again.
+
+### 2. Export Data from GEE
 
 ```bash
-docker run -it -p 8888:8888 -v $(pwd):/app/ drc-30x30-data-prep
-```
-This will print out the URL to the Jupyter Lab (including its token). Copy the URL, and paste into a browser to launch Jupyter Lab.
-
-### 4. Authenticate with GEE
-
-Open `authenticate.ipynb` and run the two cells to authenticate with your GEE account in the Docker container.
-
-### 5. Export Data from GEE
-
-Open terminal in Jupyter Lab, and run the following to export all the data from GEE:
-
-```bash
-python scripts/gee/gee_export.py
+pixi run -e gee gee-export        # = python scripts/gee/gee_export.py
 ```
 
 All exports are sent to your Google Drive, in a folder named `DRC_30x30`. You can monitor progress in the [Earth Engine Tasks tab](https://code.earthengine.google.com/tasks).
 
-### 6. Add Neighborhood Information
+### 3. Add Neighborhood Information
 
-After the completion of GEE data export, move all the exported CSV files to `data/gee`, and run the following script to add spatial neighborhood information and merge all CSV files into a single file for further analysis:
+After the completion of GEE data export, download all the exported CSV files from Google Drive to `data/gee`, and run the following to add spatial neighborhood information and merge all CSV files into a single file for further analysis:
 
 ```bash
-python scripts/gee/merge_tables.py
+pixi run -e gee gee-merge         # = python scripts/gee/merge_tables.py
 ```
 
 This will generate a file named `drc_1km_data_planning_units.csv` in the `output` folder.
-
-(The same two scripts can also be run outside Docker with `pixi run -e gee gee-export` / `pixi run -e gee gee-merge`.)
 
 ### ⚙️ Customization
 
@@ -134,7 +135,7 @@ Reading the IUCN shapefiles over a network share is slow. Copy them to a local d
 
 ### 1. Set up the environment
 
-The environment (Python 3.12, GDAL, geopandas, pyogrio, shapely, pyproj, rasterio, exactextract, pyarrow, ...) is managed with [pixi](https://pixi.sh). It installs everything from conda-forge, including GDAL, so no system GDAL is needed:
+Use the `default` pixi environment (see [Environment](#environment-both-workflows)):
 
 ```bash
 pixi install
