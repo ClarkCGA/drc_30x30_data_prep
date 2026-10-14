@@ -291,6 +291,12 @@ def process_species(task):
         for name in ("breeding", "nonbreeding"):
             out[f"global_{name}_km2"] = global_km2.get(name, np.nan)
 
+        # Area of the DRC that the species' own map marks as (possibly) extinct;
+        # used to flag national extinctions whose extant remainder is only a
+        # boundary artefact (see filters.national_extinct_ratio).
+        gone = _polygonal(geoms[absent])
+        out["drc_absent_km2"] = float(_overlay(_dissolve(gone))[1].sum()) if len(gone) else 0.0
+
         ids_all, km2_all = _overlay(whole)
         out["drc_km2"] = float(km2_all.sum())
         out["n_cells"] = int(len(ids_all))
@@ -319,13 +325,19 @@ def process_species(task):
 
 
 SUMMARY_COLUMNS = ["id_no", "range_source", "status", "n_polygons", "n_duplicate_polygons",
-                   "n_absent_polygons", "migratory",
+                   "n_absent_polygons", "drc_absent_km2", "migratory",
                    "global_km2", "global_breeding_km2", "global_nonbreeding_km2", "drc_km2", "n_cells",
                    "drc_share", "aoh_files"]
 
 
 def append_summary(path, res):
     """Append one result row with a fixed column order (resume-safe log)."""
+    if path.exists():
+        with open(path) as f:
+            header = f.readline().strip().split(",")
+        if header != SUMMARY_COLUMNS:  # log written by an older version: migrate it
+            old = pd.read_csv(path, on_bad_lines="skip")
+            old.reindex(columns=SUMMARY_COLUMNS).to_csv(path, index=False)
     row = pd.DataFrame([res]).reindex(columns=SUMMARY_COLUMNS)
     row.to_csv(path, mode="a", header=not path.exists(), index=False)
 

@@ -17,7 +17,7 @@ SPECIES_COLUMNS = [
     "category", "category_raw", "category_source", "weight", "source", "included", "status",
     "global_km2", "global_breeding_km2", "global_nonbreeding_km2", "drc_km2", "drc_share",
     "n_cells", "migratory", "marine", "terrestrial", "freshwater", "marine_only",
-    "n_polygons", "n_duplicate_polygons", "n_absent_polygons", "n_source_files", "source_files", "category_conflict",
+    "n_polygons", "n_duplicate_polygons", "n_absent_polygons", "drc_absent_km2", "n_source_files", "source_files", "category_conflict",
 ]
 
 
@@ -194,6 +194,10 @@ def combine(cfg, grid):
     sp["weight"] = sp["category"].map(lambda c: weight_of(c if isinstance(c, str) else None, cfg.weights))
     sliver = sp["status"].eq("ok") & (sp["drc_km2"] < cfg.filters["min_drc_km2"])
     sp.loc[sliver, "status"] = "excluded_drc_sliver"
+    absent = sp["drc_absent_km2"].fillna(0) if "drc_absent_km2" in sp else pd.Series(0, index=sp.index)
+    extinct = sp["status"].eq("ok") & (absent > 0) & (
+        sp["drc_km2"] < cfg.filters["national_extinct_ratio"] * absent)
+    sp.loc[extinct, "status"] = "excluded_nationally_extinct"
     sp["included"] = sp["status"].eq("ok") & sp["weight"].notna()
     for c in SPECIES_COLUMNS:
         if c not in sp:

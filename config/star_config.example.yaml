@@ -61,6 +61,11 @@ filters:
   # Species whose filtered range covers less than this many km2 of the DRC
   # grid are treated as border-digitising slivers and not scored.
   min_drc_km2: 1.0
+  # A species is treated as nationally extinct (not scored) when its extant
+  # range left in the DRC is smaller than this fraction of the DRC area its
+  # own map marks as possibly extinct / extinct (the remainder is then a
+  # border-mismatch artefact, e.g. black rhino).
+  national_extinct_ratio: 0.01
   exclude_marine_only: true
   exclude_categories: [EX, EW]
 

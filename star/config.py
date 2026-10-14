@@ -14,6 +14,7 @@ DEFAULT_FILTERS = {
     "subtract_presence": [4, 5],
     "exclude_marine_only": True,
     "min_drc_km2": 1.0,
+    "national_extinct_ratio": 0.01,
     "exclude_categories": ["EX", "EW"],
 }
 

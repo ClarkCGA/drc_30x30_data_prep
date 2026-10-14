@@ -43,6 +43,7 @@ bird categories) only needs `combine` to be re-run.
 | Category | EX and EW excluded | |
 | Marine-only | species with `marine = true` and `terrestrial = false` and `freshwater = false` excluded | euryhaline / coastal species with a terrestrial or freshwater system are kept |
 | Border slivers | species with < 1 km² of filtered range inside the DRC excluded | sub-cell digitising artefacts (`min_drc_km2`) |
+| National extinction | species whose extant range left in the DRC is < 1 % of the DRC area its own map marks extinct / possibly extinct are excluded | the remainder is a boundary-mismatch artefact; in the 2025-2 data this applies only to black rhino (`national_extinct_ratio`) |
 
 All filters are set in the config file (`filters:`).
 
@@ -139,7 +140,7 @@ Bird Red List categories come from the HBW-BirdLife Checklist v10 (column
 `status` values: `ok`, `excluded_category`, `excluded_marine_only`,
 `excluded_no_weight`, `excluded_filters_no_drc_range` (no filtered polygon
 reaches the DRC), `no_drc_overlap` (touches the DRC bounding box only),
-`excluded_drc_sliver`, `error: …`.
+`excluded_drc_sliver`, `excluded_nationally_extinct`, `error: …`.
 
 ## Differences from the earlier `IUCN_STAR_values.xlsx`
 
