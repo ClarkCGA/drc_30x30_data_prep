@@ -31,16 +31,22 @@ star-combine = "python -m star.run --config config/star_config.yaml combine"
 star-all = "python -m star.run --config config/star_config.yaml all"
 
 # ---------------------------------------------------------------------------
-# Optional GEE environment (the Docker image remains the reference setup).
+# GEE environment: Earth Engine export (scripts/gee/) and authentication.
+#   pixi run -e gee gee-lab      # Jupyter Lab; run authenticate.ipynb once
+#   pixi run -e gee gee-export   # export all layers to Google Drive
+#   pixi run -e gee gee-merge    # merge the downloaded CSVs
+# ee.Initialize() uses the credentials and Cloud project chosen during the
+# web sign-in in authenticate.ipynb (earthengine-api 1.x).
 # ---------------------------------------------------------------------------
 [feature.gee.dependencies]
-earthengine-api = "*"
+earthengine-api = ">=1.5,<2"
 jupyterlab = ">=4.4"
 
 [feature.gee.activation.env]
 PYTHONPATH = "$PIXI_PROJECT_ROOT"
 
 [feature.gee.tasks]
+gee-lab = "jupyter lab"
 gee-export = "python scripts/gee/gee_export.py"
 gee-merge = "python scripts/gee/merge_tables.py"
 
