@@ -1,0 +1,92 @@
+# STAR pipeline configuration.
+#
+# Copy this file to config/star_config.yaml (git-ignored) and point the
+# paths at your local copies of the raw data. Relative paths are resolved
+# against the repository root; "~" and $ENV_VARS are expanded.
+#
+# None of the raw data is distributed with this repository (see README).
+
+paths:
+  # 1 km DRC planning-unit grid (grid_id, x_native, y_native, ...).
+  # Tracked in this repo with Git LFS.
+  grid_table: data/drc_1km_grid_reference_table.csv
+
+  # Optional DRC national boundary (any vector format/CRS). If set, border
+  # cells only count the part inside the DRC, so ranges of species that stop
+  # at a neighbouring country's border do not leak into DRC planning units.
+  # Leave empty to use full 1 km cells.
+  # We use geoBoundaries COD ADM0 (gbOpen, OpenStreetMap-derived, ODbL).
+  drc_boundary: ~/data/boundaries/geoBoundaries-COD-ADM0.geojson
+  # Land-only boundaries leave out the DRC's share of border lakes
+  # (Tanganyika, Albert, Edward, Kivu, Mweru). Lake polygons listed here are
+  # added back wherever they fall inside grid cells (HydroLAKES/LakeATLAS).
+  # The full LakeATLAS_v10_pol_east.shp works as is (read with the grid's
+  # bounding box); a pre-clipped subset just loads faster.
+  drc_boundary_add_water:
+    - ~/data/boundaries/LakeATLAS_v10_pol_drc_bbox.gpkg
+
+  # IUCN Red List spatial data: folder holding the global group folders
+  # (AMPHIBIANS/, MAMMALS/, FW_FISH/, FW_OTHER/, PLANTS/, ...). Every *.shp
+  # below it is scanned, except folders listed in iucn_exclude_dirs.
+  # FW_OTHER also holds the global ranges of ~2,300 freshwater-associated
+  # birds; with birds.mode aoh_all they are skipped (birds come from AOH).
+  iucn_dir: ~/data/iucn_red_list_threatened_species
+
+  # HBW-BirdLife checklist. Supplies names and the Red List category of
+  # every bird (column "2025 IUCN Red List category", key "SISRecID").
+  birdlife_checklist: ~/data/birdlife/bird_species_range/Handbook of the Birds of the World and BirdLife International Digital Checklist of the Birds of the World_Version_10.xlsx
+
+  # Optional CSV with columns id_no,category that overrides bird
+  # categories from the checklist. Leave empty if not used.
+  bird_category_override:
+
+  # BirdLife Area of Habitat rasters: a folder of FRC_<id>_<season>.tif
+  # files (the unzipped area-habitat.zip).
+  aoh_dir: ~/data/birdlife/bird_area_of_habitat/area-habitat
+
+  # Intermediate per-species results (safe to delete; enables resuming).
+  work_dir: output/star/work
+
+  # Final outputs.
+  output_dir: output/star
+
+iucn_exclude_dirs: [CONGO]
+
+# STAR inclusion filters, applied to both the global and the in-DRC range.
+filters:
+  presence: [1, 2]     # 1 extant, 2 probably extant
+  origin: [1, 2]       # 1 native, 2 reintroduced
+  seasonal: [1, 2, 3]  # 1 resident, 2 breeding, 3 non-breeding
+  # Areas the species' own map marks as 4 possibly extinct / 5 extinct are
+  # cut out of its extant range (same season), e.g. black rhino in the DRC.
+  subtract_presence: [4, 5]
+  # Species whose filtered range covers less than this many km2 of the DRC
+  # grid are treated as border-digitising slivers and not scored.
+  min_drc_km2: 1.0
+  # A species is treated as nationally extinct (not scored) when its extant
+  # range left in the DRC is smaller than this fraction of the DRC area its
+  # own map marks as possibly extinct / extinct (the remainder is then a
+  # border-mismatch artefact, e.g. black rhino).
+  national_extinct_ratio: 0.01
+  exclude_marine_only: true
+  exclude_categories: [EX, EW]
+
+# Category weights (the project's "+1 on all classes" scheme).
+weights:
+  CR: 5
+  EN: 4
+  VU: 3
+  DD: 3
+  NT: 2
+  LC: 1
+
+birds:
+  # aoh_all (project choice): every bird is scored from BirdLife Area of
+  #             Habitat; IUCN bird ranges (FW_OTHER) are not used.
+  # iucn_first: birds with an IUCN range map use it; other birds use AOH.
+  mode: aoh_all
+
+processing:
+  workers: 8
+  # Rows per Parquet row group when writing the wide per-species table.
+  wide_row_group: 50000
