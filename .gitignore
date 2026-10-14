@@ -1,6 +1,31 @@
 *.DS_Store
 .DS_Store?
 *.ipynb_checkpoints/
+__pycache__/
+
+# Environment
+.pixi/
+
+# Data and outputs (raw data is never committed; see README)
 data/
 output/
+
+# Local STAR configuration (machine-specific raw-data paths)
+config/star_config.yaml
+
+# Guard against raw geodata being added by accident
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.sbn
+*.sbx
+*.atx
+*.gpkg
+*.tif
+*.tiff
+*.zip
+*.npy
+*.parquet
 .gitattributes

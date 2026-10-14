@@ -1,0 +1,49 @@
+[workspace]
+name = "drc_30x30_data_prep"
+authors = ["Clark CGA <cga@clarku.edu>"]
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "osx-64", "linux-64", "win-64"]
+version = "0.2.0"
+
+# ---------------------------------------------------------------------------
+# Default environment: local geospatial processing (STAR pipeline).
+# GDAL / PROJ / GEOS come from conda-forge so no system install is needed.
+# ---------------------------------------------------------------------------
+[dependencies]
+python = "3.12.*"
+gdal = ">=3.9"
+geopandas = ">=1.0"
+pyogrio = ">=0.10"
+shapely = ">=2.0"
+pyproj = ">=3.6"
+rasterio = ">=1.4"
+exactextract = ">=0.2"
+numpy = ">=1.26"
+pandas = ">=2.2"
+pyarrow = ">=17"
+openpyxl = ">=3.1"
+pyyaml = ">=6.0"
+
+[tasks]
+star-iucn = "python -m star.run --config config/star_config.yaml iucn"
+star-birdlife = "python -m star.run --config config/star_config.yaml birdlife"
+star-combine = "python -m star.run --config config/star_config.yaml combine"
+star-all = "python -m star.run --config config/star_config.yaml all"
+
+# ---------------------------------------------------------------------------
+# Optional GEE environment (the Docker image remains the reference setup).
+# ---------------------------------------------------------------------------
+[feature.gee.dependencies]
+earthengine-api = "*"
+jupyterlab = ">=4.4"
+
+[feature.gee.activation.env]
+PYTHONPATH = "$PIXI_PROJECT_ROOT"
+
+[feature.gee.tasks]
+gee-export = "python scripts/gee/gee_export.py"
+gee-merge = "python scripts/gee/merge_tables.py"
+
+[environments]
+default = { solve-group = "default" }
+gee = { features = ["gee"], solve-group = "default" }
